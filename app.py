@@ -7,6 +7,14 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 
+@app.route("/main", methods=["GET", "POST"])
+def main():
+    try:
+        # Get user input
+        q = float(request.form.get("q"))
+        username = request.form.get("username")
+
+
 @app.route("/prediction", methods=["GET", "POST"])
 def prediction():
     try:
