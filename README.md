@@ -8,6 +8,43 @@ This is a Flask-based web application for making predictions using a trained mod
 - **LLM Integration:** Ask questions and get responses from the Groq Llama model.
 - **Ready for Cloud Deployment:** Designed for easy deployment on Render.com.
 
+## How the App Works
+
+### User Experience Flow
+
+1. **Landing Page (`/`)**: The user is greeted and asked to enter their name.
+2. **Main Menu (`/main`)**: After submitting their name, the user chooses between two options:
+    - **LLAMA Chatbot**: Interact with an AI chatbot powered by Groq's Llama model.
+    - **DBS Prediction**: Predict the DBS share price based on the USD/SGD exchange rate.
+
+#### LLAMA Chatbot Flow
+- The user selects the chatbot option and is taken to `/llama`, where they can input a question or prompt.
+- On submission, the app sends the query to the Groq Llama model via the Groq API, receives a response, and displays it on `/llama_reply`.
+- The user can return to the main menu from here.
+
+#### DBS Prediction Flow
+- The user selects the prediction option and is taken to `/dbs`, where they input the USD/SGD exchange rate.
+- On submission, the app loads the trained model (`dbs.jl`), makes a prediction, and displays the predicted DBS share price on `/prediction`.
+- The user can return to the home page from here.
+
+### Data Flow
+- **User inputs** (name, chatbot query, exchange rate) are submitted via HTML forms.
+- Flask routes handle the form data:
+    - For chatbot: The query is sent to the Groq API, and the response is passed to the template.
+    - For prediction: The exchange rate is passed to the model, and the prediction is rendered in the template.
+- **Templates** display the results and guide users through the next steps.
+
+### Summary Table
+
+| Route            | Template           | User Action / Purpose                        | Data Flow                                   |
+|------------------|--------------------|----------------------------------------------|---------------------------------------------|
+| `/`              | index.html         | Enter name                                   | Form input → `/main`                        |
+| `/main`          | main.html          | Choose Chatbot or Prediction                 | Button → `/llama` or `/dbs`                 |
+| `/llama`         | llama.html         | Enter chatbot query                          | Form input → `/llama_reply`                 |
+| `/llama_reply`   | llama_reply.html   | View chatbot response                        | Query sent to Groq API, response displayed  |
+| `/dbs`           | dbs.html           | Enter USD/SGD exchange rate                  | Form input → `/prediction`                  |
+| `/prediction`    | prediction.html    | View predicted DBS share price               | Model loaded, prediction displayed          |
+
 ## Requirements
 
 - Python 3.11
@@ -23,27 +60,6 @@ pip install -r requirements.txt
 ```
 
 ## Usage
-
-### Local Development
-
-1. Clone the repository:
-    ```bash
-    git clone <your-repo-url>
-    cd dbs_pred
-    ```
-
-2. Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. Place your trained model file (`dbs.jl`) in the project root.
-
-4. Set your Groq API key as an environment variable:
-    ```bash
-    export GROQ_API_KEY=your_groq_api_key
-    ```
-
 
 ### Deployment on Render.com
 
@@ -87,4 +103,4 @@ dbs_pred/
 
 ## License
 
-[MIT](LICENSE) (or your preferred license)
+[CLARENCE](LICENSE) (or your preferred license)
