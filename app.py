@@ -9,28 +9,27 @@ def index():
 
 @app.route("/main", methods=["GET", "POST"])
 def main():
-    try:
-        # Get user input
-        q = float(request.form.get("q"))
+    if request.method == "POST":
         username = request.form.get("username")
-
+        if not username:
+            return render_template("index.html", error="Please enter your name.")
+        return render_template("main.html", username=username)
+    else:
+        return render_template("index.html")
 
 @app.route("/prediction", methods=["GET", "POST"])
 def prediction():
-    try:
-        # Get the input from the form and convert to float
-        q = float(request.form.get("q"))
-
-        # Load the trained model
-        model = joblib.load("dbs.jl")
-
-        # Make prediction and format the result
-        pred_value = round(float(model.predict([[q]])[0]), 2)
-
-        return render_template("prediction.html", r=pred_value)
-    
-    except Exception as e:
-        return f"Error: {e}", 400
+    if request.method == "POST":
+        try:
+            q = float(request.form.get("q"))
+            username = request.form.get("username")
+            model = joblib.load("dbs.jl")
+            pred_value = round(float(model.predict([[q]])[0]), 2)
+            return render_template("prediction.html", r=pred_value, username=username)
+        except Exception as e:
+            return f"Error: {e}", 400
+    else:
+        return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
