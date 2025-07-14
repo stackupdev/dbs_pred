@@ -9,15 +9,20 @@ def index():
 
 @app.route("/prediction", methods=["GET", "POST"])
 def prediction():
-    q = float(request.form.get("q"))
+    try:
+        # Get the input from the form and convert to float
+        q = float(request.form.get("q"))
 
-    # load model
-    model = joblib.load("dbs.jl")
+        # Load the trained model
+        model = joblib.load("dbs.jl")
 
-    # make prediction
-    pred = model.predict([[q]])
+        # Make prediction and format the result
+        pred_value = round(float(model.predict([[q]])[0]), 2)
 
-    return render_template("prediction.html", r=pred)
+        return render_template("prediction.html", r=pred_value)
+    
+    except Exception as e:
+        return f"Error: {e}", 400
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
