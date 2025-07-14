@@ -10,9 +10,11 @@ This is a Flask-based web application for making predictions using a trained mod
 
 ## Requirements
 
-- Python 3.8+
-- Flask
+- Python 3.11
+- gunicorn
+- flask
 - joblib
+- scikit-learn
 - groq
 
 Install dependencies with:
