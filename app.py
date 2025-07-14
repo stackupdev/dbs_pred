@@ -47,11 +47,10 @@ def dbs():
 @app.route("/prediction",methods=["GET","POST"])
 def prediction():
     q = float(request.form.get("q"))
-    # load model
+    # Load the trained model
     model = joblib.load("dbs.jl")
-    # make prediction
-    pred = model.predict([[q]])
-    return(render_template("prediction.html",r=pred))
+    pred_value = round(float(model.predict([[q]])[0]), 2)
+    return render_template("prediction.html", r=pred_value)
 
 if __name__ == "__main__":
     app.run()
