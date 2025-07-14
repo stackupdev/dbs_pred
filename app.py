@@ -7,7 +7,6 @@ from groq import Groq
 # - Go to your service > Environment > Add Environment Variable
 # - Key: GROQ_API_KEY, Value: <your_actual_api_key>
 # The Groq client will automatically use this environment variable.
-import os
 
 app = Flask(__name__)
 
