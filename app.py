@@ -1,13 +1,13 @@
-#
-# 
-
 from flask import Flask, render_template, request
 import joblib
 from groq import Groq
 
+# NOTE: Do NOT set your GROQ_API_KEY in code.
+# Instead, set the GROQ_API_KEY as an environment variable in your Render.com dashboard:
+# - Go to your service > Environment > Add Environment Variable
+# - Key: GROQ_API_KEY, Value: <your_actual_api_key>
+# The Groq client will automatically use this environment variable.
 import os
-os.environ['GROQ_API_KEY'] = ""
-# for cloud ..........
 
 app = Flask(__name__)
 
