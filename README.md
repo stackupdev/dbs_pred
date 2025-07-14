@@ -44,12 +44,6 @@ pip install -r requirements.txt
     export GROQ_API_KEY=your_groq_api_key
     ```
 
-5. Run the app:
-    ```bash
-    python app.py
-    ```
-
-6. Visit `http://localhost:5000` in your browser.
 
 ### Deployment on Render.com
 
