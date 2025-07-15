@@ -6,6 +6,7 @@ This is a Flask-based web application for making predictions using a trained mod
 
 - **Prediction Endpoint:** Enter a value and receive a model prediction.
 - **LLM Integration:** Ask questions and get responses from the Groq Llama model.
+- **Deepseek Chatbot:** Interact with the Deepseek model via the Groq API.
 - **Ready for Cloud Deployment:** Designed for easy deployment on Render.com.
 
 ## How the App Works
@@ -13,13 +14,19 @@ This is a Flask-based web application for making predictions using a trained mod
 ### User Experience Flow
 
 1. **Landing Page (`/`)**: The user is greeted and asked to enter their name.
-2. **Main Menu (`/main`)**: After submitting their name, the user chooses between two options:
+2. **Main Menu (`/main`)**: After submitting their name, the user chooses between three options:
     - **LLAMA Chatbot**: Interact with an AI chatbot powered by Groq's Llama model.
+    - **Deepseek Chatbot**: Interact with the Deepseek model via Groq API.
     - **DBS Prediction**: Predict the DBS share price based on the USD/SGD exchange rate.
 
 #### LLAMA Chatbot Flow
-- The user selects the chatbot option and is taken to `/llama`, where they can input a question or prompt.
+- The user selects the LLAMA chatbot option and is taken to `/llama`, where they can input a question or prompt.
 - On submission, the app sends the query to the Groq Llama model via the Groq API, receives a response, and displays it on `/llama_reply`.
+- The user can return to the main menu from here.
+
+#### Deepseek Chatbot Flow
+- The user selects the Deepseek chatbot option and is taken to `/deepseek`, where they can input a question or prompt.
+- On submission, the app sends the query to the Deepseek model via the Groq API, receives a response, and displays it on `/deepseek_reply`.
 - The user can return to the main menu from here.
 
 #### DBS Prediction Flow
@@ -30,20 +37,22 @@ This is a Flask-based web application for making predictions using a trained mod
 ### Data Flow
 - **User inputs** (name, chatbot query, exchange rate) are submitted via HTML forms.
 - Flask routes handle the form data:
-    - For chatbot: The query is sent to the Groq API, and the response is passed to the template.
+    - For chatbots: The query is sent to the Groq API (LLAMA or Deepseek), and the response is passed to the template.
     - For prediction: The exchange rate is passed to the model, and the prediction is rendered in the template.
 - **Templates** display the results and guide users through the next steps.
 
 ### Summary Table
 
-| Route            | Template           | User Action / Purpose                        | Data Flow                                   |
-|------------------|--------------------|----------------------------------------------|---------------------------------------------|
-| `/`              | index.html         | Enter name                                   | Form input → `/main`                        |
-| `/main`          | main.html          | Choose Chatbot or Prediction                 | Button → `/llama` or `/dbs`                 |
-| `/llama`         | llama.html         | Enter chatbot query                          | Form input → `/llama_reply`                 |
-| `/llama_reply`   | llama_reply.html   | View chatbot response                        | Query sent to Groq API, response displayed  |
-| `/dbs`           | dbs.html           | Enter USD/SGD exchange rate                  | Form input → `/prediction`                  |
-| `/prediction`    | prediction.html    | View predicted DBS share price               | Model loaded, prediction displayed          |
+| Route            | Template             | User Action / Purpose                        | Data Flow                                   |
+|------------------|----------------------|----------------------------------------------|---------------------------------------------|
+| `/`              | index.html           | Enter name                                   | Form input → `/main`                        |
+| `/main`          | main.html            | Choose Chatbot or Prediction                 | Button → `/llama`, `/deepseek`, or `/dbs`   |
+| `/llama`         | llama.html           | Enter LLAMA chatbot query                    | Form input → `/llama_reply`                 |
+| `/llama_reply`   | llama_reply.html     | View LLAMA chatbot response                  | Query sent to Groq API, response displayed  |
+| `/deepseek`      | deepseek.html        | Enter Deepseek chatbot query                 | Form input → `/deepseek_reply`              |
+| `/deepseek_reply`| deepseek_reply.html  | View Deepseek chatbot response               | Query sent to Groq API, response displayed  |
+| `/dbs`           | dbs.html             | Enter USD/SGD exchange rate                  | Form input → `/prediction`                  |
+| `/prediction`    | prediction.html      | View predicted DBS share price               | Model loaded, prediction displayed          |
 
 ## Requirements
 
