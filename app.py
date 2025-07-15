@@ -130,11 +130,28 @@ telegram_dispatcher.add_handler(CommandHandler("reset", reset_command))
 
 @app.route("/telegram_webhook", methods=["POST"])
 def telegram_webhook():
-    data = request.get_json(force=True)
-    print("Received Telegram update:", data)  # Add this line for debugging
-    update = Update.de_json(data, TELEGRAM_BOT)
-    telegram_dispatcher.process_update(update)
-    return jsonify(success=True)
+    try:
+        data = request.get_json(force=True)
+        print("Received Telegram update:", data)  # Debug incoming updates
+        
+        # Check if we have a valid token
+        if not TELEGRAM_BOT_TOKEN:
+            print("ERROR: TELEGRAM_BOT_TOKEN environment variable not set!")
+            return jsonify(success=False, error="Bot token not configured"), 500
+            
+        update = Update.de_json(data, TELEGRAM_BOT)
+        if update:
+            print(f"Processing update ID: {update.update_id}, type: {'message' if update.message else 'callback_query' if update.callback_query else 'unknown'}")
+            telegram_dispatcher.process_update(update)
+        else:
+            print("WARNING: Received invalid update format from Telegram")
+            
+        return jsonify(success=True)
+    except Exception as e:
+        print(f"ERROR in telegram_webhook: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify(success=False, error=str(e)), 500
 
 @app.route("/",methods=["GET","POST"])
 def index():
