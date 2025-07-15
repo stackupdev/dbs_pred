@@ -37,12 +37,33 @@ def get_deepseek_reply(messages: list) -> str:
     return completion_ds.choices[0].message.content
 
 def predict_dbs(usdsgd: float) -> str:
-    model_path = os.path.join(os.path.dirname(__file__), 'dbs.jl')
-    if not os.path.exists(model_path):
-        return "Prediction model not loaded."
-    dbs_model = joblib.load(model_path)
-    pred = dbs_model.predict([[usdsgd]])[0]
-    return f"Predicted DBS share price: {pred:.2f} SGD"
+    try:
+        # Get absolute path to the model file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(current_dir, 'dbs.jl')
+        
+        # Log the path for debugging
+        print(f"Looking for model at: {model_path}")
+        
+        # Check if model file exists
+        if not os.path.exists(model_path):
+            print(f"ERROR: Model file not found at {model_path}")
+            return "Prediction model not found. Please check server logs."
+            
+        # Try to load the model
+        print("Loading model...")
+        dbs_model = joblib.load(model_path)
+        
+        # Make prediction
+        print(f"Making prediction with USD/SGD rate: {usdsgd}")
+        pred = dbs_model.predict([[usdsgd]])[0]
+        return f"Predicted DBS share price: {pred:.2f} SGD"
+        
+    except Exception as e:
+        print(f"ERROR in predict_dbs: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return f"Error making prediction: {str(e)}"
 
 # Telegram command handlers
 
@@ -98,6 +119,11 @@ def deepseek_command(update, context):
 def predict_command(update, context):
     user_id = update.effective_user.id
     udata = get_user_data(user_id)
+    
+    # Debug print
+    print(f"Predict command received from user {user_id}")
+    print(f"Args: {context.args}")
+    
     if not context.args:
         last_rate = udata.get('last_usdsgd')
         if last_rate:
@@ -107,10 +133,15 @@ def predict_command(update, context):
         return
     try:
         usdsgd = float(context.args[0])
+        print(f"Valid USD/SGD rate provided: {usdsgd}")
         udata['last_usdsgd'] = usdsgd
         reply = predict_dbs(usdsgd)
-    except Exception:
+    except ValueError as e:
+        print(f"Invalid input: {context.args[0]} - {str(e)}")
         reply = "Invalid input. Please provide a valid number for USD/SGD."
+    except Exception as e:
+        print(f"Error in predict_command: {str(e)}")
+        reply = f"Error processing prediction: {str(e)}"
     update.message.reply_text(reply)
 
 def reset_command(update, context):
