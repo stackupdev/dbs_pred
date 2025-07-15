@@ -27,7 +27,7 @@ def deepseek():
 @app.route("/deepseek_reply", methods=["GET", "POST"])
 def deepseek_reply():
     q = request.form.get("q")
-    client = Deepseek()
+    client = deepseek()
     completion = client.chat.completions.create(
         model="deepseek-r1-distill-llama-70b",
         messages=[
