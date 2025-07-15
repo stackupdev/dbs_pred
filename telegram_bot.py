@@ -1,6 +1,7 @@
 import os
+import logging
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from groq import Groq
 import joblib
 
@@ -99,6 +100,10 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop('deepseek_history', None)
     await update.message.reply_text("Your chat history has been reset.")
 
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f"Echoing message from {update.effective_user.id}: {update.message.text}")
+    await update.message.reply_text(f"You said: {update.message.text}")
+
 def main():
     TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not TOKEN:
@@ -111,6 +116,7 @@ def main():
     app.add_handler(CommandHandler("deepseek", deepseek_command))
     app.add_handler(CommandHandler("predict", predict_command))
     app.add_handler(CommandHandler("reset", reset_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     print("GroqSeeker_Bot is running...")
     app.run_polling()
 
