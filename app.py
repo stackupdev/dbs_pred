@@ -57,7 +57,9 @@ def predict_dbs(usdsgd: float) -> str:
         # Make prediction
         print(f"Making prediction with USD/SGD rate: {usdsgd}")
         pred = dbs_model.predict([[usdsgd]])[0]
-        return f"Predicted DBS share price: {pred:.2f} SGD"
+        # Convert numpy array value to Python float before formatting
+        pred_float = float(pred)
+        return f"Predicted DBS share price: {pred_float:.2f} SGD"
         
     except Exception as e:
         print(f"ERROR in predict_dbs: {str(e)}")
