@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify
 import joblib
 from groq import Groq
 from telegram import Update, Bot
-from telegram.ext import Dispatcher, CommandHandler, CallbackContext
+from telegram.ext import Dispatcher, CommandHandler
 
 # NOTE: Do NOT set your GROQ_API_KEY in code.
 # Instead, set the GROQ_API_KEY as an environment variable in your Render.com dashboard:
@@ -51,7 +51,7 @@ def get_user_data(user_id):
         user_data[user_id] = {}
     return user_data[user_id]
 
-def start(update: Update, context: CallbackContext):
+def start(update, context):
     update.message.reply_text(
         "Welcome to GroqSeeker_Bot!\n\n" +
         "Use /llama <your question> to chat with LLAMA,\n" +
@@ -59,7 +59,7 @@ def start(update: Update, context: CallbackContext):
         "Use /predict <usdsgd> to predict DBS share price."
     )
 
-def help_command(update: Update, context: CallbackContext):
+def help_command(update, context):
     update.message.reply_text(
         "Commands:\n" +
         "/llama <question> - Chat with LLAMA AI\n" +
@@ -67,7 +67,7 @@ def help_command(update: Update, context: CallbackContext):
         "/predict <usdsgd> - Predict DBS share price\n"
     )
 
-def llama_command(update: Update, context: CallbackContext):
+def llama_command(update, context):
     user_id = update.effective_user.id
     q = ' '.join(context.args)
     udata = get_user_data(user_id)
@@ -81,7 +81,7 @@ def llama_command(update: Update, context: CallbackContext):
     udata['llama_history'].append({"role": "assistant", "content": reply})
     update.message.reply_text(reply)
 
-def deepseek_command(update: Update, context: CallbackContext):
+def deepseek_command(update, context):
     user_id = update.effective_user.id
     q = ' '.join(context.args)
     udata = get_user_data(user_id)
@@ -95,7 +95,7 @@ def deepseek_command(update: Update, context: CallbackContext):
     udata['deepseek_history'].append({"role": "assistant", "content": reply})
     update.message.reply_text(reply)
 
-def predict_command(update: Update, context: CallbackContext):
+def predict_command(update, context):
     user_id = update.effective_user.id
     udata = get_user_data(user_id)
     if not context.args:
@@ -113,7 +113,7 @@ def predict_command(update: Update, context: CallbackContext):
         reply = "Invalid input. Please provide a valid number for USD/SGD."
     update.message.reply_text(reply)
 
-def reset_command(update: Update, context: CallbackContext):
+def reset_command(update, context):
     user_id = update.effective_user.id
     udata = get_user_data(user_id)
     udata.pop('llama_history', None)
