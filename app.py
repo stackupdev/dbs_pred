@@ -130,7 +130,9 @@ telegram_dispatcher.add_handler(CommandHandler("reset", reset_command))
 
 @app.route("/telegram_webhook", methods=["POST"])
 def telegram_webhook():
-    update = Update.de_json(request.get_json(force=True), TELEGRAM_BOT)
+    data = request.get_json(force=True)
+    print("Received Telegram update:", data)  # Add this line for debugging
+    update = Update.de_json(data, TELEGRAM_BOT)
     telegram_dispatcher.process_update(update)
     return jsonify(success=True)
 
