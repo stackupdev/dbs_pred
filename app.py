@@ -74,8 +74,32 @@ def get_user_data(user_id):
         user_data[user_id] = {}
     return user_data[user_id]
 
+def send_telegram_message(update, text):
+    """Split long messages into smaller chunks to avoid Telegram's 4096 character limit"""
+    # Maximum message length for Telegram
+    MAX_MESSAGE_LENGTH = 4000  # Slightly less than 4096 to be safe
+    
+    # If message is short enough, send it as is
+    if len(text) <= MAX_MESSAGE_LENGTH:
+        update.message.reply_text(text)
+        return
+        
+    # Split long message into chunks
+    chunks = []
+    for i in range(0, len(text), MAX_MESSAGE_LENGTH):
+        chunks.append(text[i:i + MAX_MESSAGE_LENGTH])
+    
+    # Send each chunk as a separate message
+    for i, chunk in enumerate(chunks):
+        # Add part number if there are multiple chunks
+        if len(chunks) > 1:
+            prefix = f"Part {i+1}/{len(chunks)}:\n\n"
+            update.message.reply_text(prefix + chunk)
+        else:
+            update.message.reply_text(chunk)
+
 def start(update, context):
-    update.message.reply_text(
+    send_telegram_message(update,
         "Welcome to GroqSeeker_Bot!\n\n" +
         "Use /llama <your question> to chat with LLAMA,\n" +
         "Use /deepseek <your question> to chat with Deepseek,\n" +
@@ -83,7 +107,7 @@ def start(update, context):
     )
 
 def help_command(update, context):
-    update.message.reply_text(
+    send_telegram_message(update,
         "Commands:\n" +
         "/llama <question> - Chat with LLAMA AI\n" +
         "/deepseek <question> - Chat with Deepseek AI\n" +
@@ -96,13 +120,13 @@ def llama_command(update, context):
     udata = get_user_data(user_id)
     if 'llama_history' not in udata:
         udata['llama_history'] = []
-    if not q:
-        update.message.reply_text("Please provide a question after /llama.")
+    if not context.args:
+        send_telegram_message(update, "Please provide a question after /llama.")
         return
     udata['llama_history'].append({"role": "user", "content": q})
     reply = get_llama_reply(udata['llama_history'])
     udata['llama_history'].append({"role": "assistant", "content": reply})
-    update.message.reply_text(reply)
+    send_telegram_message(update, reply)
 
 def deepseek_command(update, context):
     user_id = update.effective_user.id
@@ -110,13 +134,13 @@ def deepseek_command(update, context):
     udata = get_user_data(user_id)
     if 'deepseek_history' not in udata:
         udata['deepseek_history'] = []
-    if not q:
-        update.message.reply_text("Please provide a question after /deepseek.")
+    if not context.args:
+        send_telegram_message(update, "Please provide a question after /deepseek.")
         return
     udata['deepseek_history'].append({"role": "user", "content": q})
     reply = get_deepseek_reply(udata['deepseek_history'])
     udata['deepseek_history'].append({"role": "assistant", "content": reply})
-    update.message.reply_text(reply)
+    send_telegram_message(update, reply)
 
 def predict_command(update, context):
     user_id = update.effective_user.id
@@ -129,9 +153,9 @@ def predict_command(update, context):
     if not context.args:
         last_rate = udata.get('last_usdsgd')
         if last_rate:
-            update.message.reply_text(f"Your last USD/SGD rate was: {last_rate}")
+            send_telegram_message(update, f"Your last USD/SGD rate was: {last_rate}")
         else:
-            update.message.reply_text("Please provide the USD/SGD rate after /predict.")
+            send_telegram_message(update, "Please provide the USD/SGD rate after /predict.")
         return
     try:
         usdsgd = float(context.args[0])
@@ -151,7 +175,7 @@ def reset_command(update, context):
     udata = get_user_data(user_id)
     udata.pop('llama_history', None)
     udata.pop('deepseek_history', None)
-    update.message.reply_text("Your chat history has been reset.")
+    send_telegram_message(update, "Your chat history has been reset.")
 
 # Register handlers with the dispatcher
 telegram_dispatcher.add_handler(CommandHandler("start", start))
