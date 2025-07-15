@@ -8,10 +8,6 @@ from groq import Groq
 # - Key: GROQ_API_KEY, Value: <your_actual_api_key>
 # The Groq client will automatically use this environment variable.
 
-#import os (optional code)
-
-#os.environ['GROQ_API_KEY'] = os.getenv("groq") (optional code)
-
 app = Flask(__name__)
 
 @app.route("/",methods=["GET","POST"])
