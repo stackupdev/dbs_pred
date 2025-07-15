@@ -29,7 +29,7 @@ def deepseek_reply():
     q = request.form.get("q")
     client = Deepseek()
     completion = client.chat.completions.create(
-        model="deepseek-model-name",
+        model="deepseek-r1-distill-llama-70b",
         messages=[
             {
                 "role": "user",
