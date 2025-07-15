@@ -3,4 +3,4 @@ flask
 joblib
 scikit-learn
 groq
-python-telegram-bot
+python-telegram-bot==13.15
