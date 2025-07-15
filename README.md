@@ -91,6 +91,8 @@ dbs_pred/
 │   ├── main.html
 │   ├── llama.html
 │   ├── llama_reply.html
+│   ├── deepseek.html
+│   ├── deepseek_reply.html
 │   ├── dbs.html
 │   └── prediction.html
 └── README.md
@@ -104,6 +106,8 @@ dbs_pred/
 - `/llama_reply` — LLM response page
 - `/dbs` — DBS info page
 - `/prediction` — Model prediction page
+- `/deepseek` — Deepseek chatbot page
+- `/deepseek_reply` — Deepseek chatbot response page
 
 ## Security
 
