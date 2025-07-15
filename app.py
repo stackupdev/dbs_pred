@@ -28,7 +28,7 @@ def deepseek():
 def deepseek_reply():
     q = request.form.get("q")
     client = Groq()
-    completion = client.chat.completions.create(
+    completion_ds = client.chat.completions.create(
         model="deepseek-r1-distill-llama-70b",
         messages=[
             {
@@ -37,7 +37,7 @@ def deepseek_reply():
            }
         ]
     )
-    return(render_template("deepseek_reply.html", r=completion.choices[0].message.content))
+    return(render_template("deepseek_reply.html", r=completion_ds.choices[0].message.content))
 
 @app.route("/llama",methods=["GET","POST"])
 def llama():
