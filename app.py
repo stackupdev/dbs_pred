@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, jsonify
 import joblib
 from groq import Groq
-from telegram import Update, Bot
+from telegram import Update, Bot, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Dispatcher, CommandHandler
 
 # NOTE: Do NOT set your GROQ_API_KEY in code.
@@ -142,36 +142,47 @@ def truncate_conversation(messages, max_tokens=MAX_TOKENS):
             
     return messages
 
-def send_telegram_message(update, text):
+def send_telegram_message(update, text, reply_markup=None):
     """Split long messages into smaller chunks to avoid Telegram's 4096 character limit"""
     # Maximum message length for Telegram
-    MAX_MESSAGE_LENGTH = 4000  # Slightly less than 4096 to be safe
+    max_length = 4000  # Slightly less than 4096 to be safe
     
-    # If message is short enough, send it as is
-    if len(text) <= MAX_MESSAGE_LENGTH:
-        update.message.reply_text(text)
+    # If the message is short enough, send it as is
+    if len(text) <= max_length:
+        update.message.reply_text(text, reply_markup=reply_markup)
         return
         
-    # Split long message into chunks
-    chunks = []
-    for i in range(0, len(text), MAX_MESSAGE_LENGTH):
-        chunks.append(text[i:i + MAX_MESSAGE_LENGTH])
+    # Otherwise, split it into chunks
+    chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
     
-    # Send each chunk as a separate message
-    for i, chunk in enumerate(chunks):
-        # Add part number if there are multiple chunks
-        if len(chunks) > 1:
-            prefix = f"Part {i+1}/{len(chunks)}:\n\n"
+    # Send the first chunk with reply_markup
+    update.message.reply_text(chunks[0], reply_markup=reply_markup)
+    
+    # Send the rest with a prefix, but no reply_markup
+    prefix = "(continued) "
+    for chunk in chunks[1:]:
+        if len(chunk) + len(prefix) <= max_length:
             update.message.reply_text(prefix + chunk)
         else:
             update.message.reply_text(chunk)
 
 def start(update, context):
-    send_telegram_message(update,
+    # Create custom keyboard with main options
+    keyboard = [
+        [KeyboardButton("Chat with LLAMA"), KeyboardButton("Chat with Deepseek")],
+        [KeyboardButton("Predict DBS Price"), KeyboardButton("Reset Conversation")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    send_telegram_message(
+        update,
         "Welcome to GroqSeeker_Bot!\n\n" +
-        "Use /llama <your question> to chat with LLAMA,\n" +
-        "Use /deepseek <your question> to chat with Deepseek,\n" +
-        "Use /predict <usdsgd> to predict DBS share price."
+        "Select an option below or type your question directly.\n\n" +
+        "You can also use commands:\n" +
+        "/llama <question> - Chat with LLAMA\n" +
+        "/deepseek <question> - Chat with Deepseek\n" +
+        "/predict <usdsgd> - Predict DBS price",
+        reply_markup=reply_markup
     )
 
 def help_command(update, context):
@@ -185,13 +196,19 @@ def help_command(update, context):
 def llama_command(update, context):
     user_id = update.effective_user.id
     udata = get_user_data(user_id)
+    
+    # Track which model was last used
+    udata['last_model'] = 'llama'
+    
+    # Initialize history if not present
     if 'llama_history' not in udata:
         udata['llama_history'] = []
+    
+    # Get the query from message
     if not context.args:
-        send_telegram_message(update, "Please provide a question after /llama.")
+        send_telegram_message(update, "Please provide a question after /llama")
         return
         
-    # Get the user's question from arguments
     q = ' '.join(context.args)
     print(f"LLAMA query from user {user_id}: {q}")
     
@@ -213,13 +230,19 @@ def llama_command(update, context):
 def deepseek_command(update, context):
     user_id = update.effective_user.id
     udata = get_user_data(user_id)
+    
+    # Track which model was last used
+    udata['last_model'] = 'deepseek'
+    
+    # Initialize history if not present
     if 'deepseek_history' not in udata:
         udata['deepseek_history'] = []
+    
+    # Get the query from message
     if not context.args:
-        send_telegram_message(update, "Please provide a question after /deepseek.")
+        send_telegram_message(update, "Please provide a question after /deepseek")
         return
         
-    # Get the user's question from arguments
     q = ' '.join(context.args)
     print(f"Deepseek query from user {user_id}: {q}")
     
@@ -273,6 +296,46 @@ def reset_command(update, context):
     udata.pop('deepseek_history', None)
     send_telegram_message(update, "Your chat history has been reset.")
 
+# Add handler for regular text messages
+def message_handler(update, context):
+    user_id = update.effective_user.id
+    udata = get_user_data(user_id)
+    text = update.message.text
+    
+    # Process based on the button/text content
+    if text == "Chat with LLAMA":
+        update.message.text = "/llama Hi, I'd like to chat"
+        return llama_command(update, context)
+    elif text == "Chat with Deepseek":
+        update.message.text = "/deepseek Hi, I'd like to chat"
+        return deepseek_command(update, context)
+    elif text == "Predict DBS Price":
+        send_telegram_message(update, "Please enter the USD/SGD rate to predict DBS price.\nFormat: 1.34")
+        udata['expecting_usdsgd'] = True
+        return
+    elif text == "Reset Conversation":
+        return reset_command(update, context)
+    elif udata.get('expecting_usdsgd', False):
+        # User is expected to provide USD/SGD rate
+        udata['expecting_usdsgd'] = False
+        try:
+            rate = float(text.strip())
+            # Create a context-like object with args
+            context.args = [str(rate)]
+            return predict_command(update, context)
+        except ValueError:
+            send_telegram_message(update, "Invalid input. Please provide a valid number for USD/SGD rate.")
+            return
+    
+    # Default: treat as a question for the last used model or LLAMA
+    model = udata.get('last_model', 'llama')
+    if model == 'deepseek':
+        update.message.text = f"/deepseek {text}"
+        return deepseek_command(update, context)
+    else:  # Default to LLAMA
+        update.message.text = f"/llama {text}"
+        return llama_command(update, context)
+
 # Register handlers with the dispatcher
 telegram_dispatcher.add_handler(CommandHandler("start", start))
 telegram_dispatcher.add_handler(CommandHandler("help", help_command))
@@ -280,6 +343,9 @@ telegram_dispatcher.add_handler(CommandHandler("llama", llama_command))
 telegram_dispatcher.add_handler(CommandHandler("deepseek", deepseek_command))
 telegram_dispatcher.add_handler(CommandHandler("predict", predict_command))
 telegram_dispatcher.add_handler(CommandHandler("reset", reset_command))
+# Add handler for regular text messages (must be added last)
+from telegram.ext import MessageHandler, Filters
+telegram_dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, message_handler))
 
 @app.route("/telegram_webhook", methods=["POST"])
 def telegram_webhook():
