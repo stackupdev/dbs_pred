@@ -315,23 +315,16 @@ def telegram_info():
     # Check webhook status with Telegram API
     webhook_status = "Unknown"
     try:
-        # Get webhook info from Telegram API using urllib3
-        import urllib3
-        import json
-        
-        # Create a connection pool
-        http = urllib3.PoolManager()
+        # Get webhook info from Telegram API
+        import requests
         
         token = os.environ.get('TELEGRAM_BOT_TOKEN')
         if not token:
             webhook_status = "Error: TELEGRAM_BOT_TOKEN not set"
         else:
-            response = http.request(
-                'GET',
-                f"https://api.telegram.org/bot{token}/getWebhookInfo"
-            )
-            if response.status == 200:
-                webhook_info = json.loads(response.data.decode('utf-8'))
+            response = requests.get(f"https://api.telegram.org/bot{token}/getWebhookInfo")
+            if response.status_code == 200:
+                webhook_info = response.json()
                 if webhook_info.get("ok"):
                     webhook_data = webhook_info.get("result", {})
                     if webhook_data.get("url"):
