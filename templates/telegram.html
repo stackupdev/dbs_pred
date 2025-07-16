@@ -41,14 +41,8 @@
             </div>
             
             <h3>Webhook Status</h3>
+            <p>Webhook URL: <code>https://dbs-pred.onrender.com/telegram_webhook</code></p>
             <p>Status: <strong>{{webhook_status}}</strong></p>
-            
-            <h3>Webhook Management</h3>
-            <p>If your bot stops responding, you may need to reset the webhook:</p>
-            <form action="/telegram" method="post">
-                <input type="hidden" name="action" value="reset_webhook">
-                <input type="submit" value="Reset Webhook">
-            </form>
         </div>
         
         <form action="/" method="get">         

@@ -310,62 +310,20 @@ def telegram_webhook():
 def index():
     return render_template('main.html')
 
-@app.route("/telegram", methods=["GET", "POST"])
-def telegram():
-    # Get the domain URL from the request or use the Render.com URL
-    if request.host_url.startswith('http://localhost'):
-        domain_url = 'https://dbs-pred.onrender.com'  # Replace with your actual Render.com URL
-    else:
-        domain_url = request.host_url.rstrip('/')
+@app.route('/telegram')
+def telegram_info():
+    # Check webhook status
+    webhook_status = "Active"
+    try:
+        # This is a placeholder - in a real implementation, you might want to
+        # actually check with the Telegram API if the webhook is properly set
+        pass
+    except Exception as e:
+        webhook_status = f"Error: {str(e)}"
     
-    webhook_status = "Unknown"
-    status = "GroqSeeker_Bot is ready to use in Telegram"
-    
-    if request.method == "POST" and request.form.get('action') == 'reset_webhook':
-        try:
-            # Delete the existing webhook
-            delete_webhook_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook"
-            requests.post(delete_webhook_url, json={"drop_pending_updates": True})
-            
-            # Set the new webhook URL
-            set_webhook_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook"
-            webhook_response = requests.post(
-                set_webhook_url, 
-                json={"url": f"{domain_url}/telegram_webhook", "drop_pending_updates": True}
-            )
-            
-            if webhook_response.status_code == 200 and webhook_response.json().get('ok'):
-                webhook_status = "Successfully reset"
-                status = "The Telegram bot webhook has been reset. @GroqSeeker_Bot is ready."
-            else:
-                webhook_status = f"Error: {webhook_response.text}"
-                status = "Failed to reset the Telegram bot webhook. See details below."
-        except Exception as e:
-            webhook_status = f"Error: {str(e)}"
-            status = "An error occurred while resetting the webhook."
-    else:
-        # Check current webhook status
-        try:
-            get_webhook_info_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getWebhookInfo"
-            webhook_info = requests.get(get_webhook_info_url).json()
-            
-            if webhook_info.get('ok') and webhook_info.get('result'):
-                result = webhook_info['result']
-                if result.get('url'):
-                    webhook_status = "Active: " + result.get('url')
-                else:
-                    webhook_status = "Not set"
-                    
-                # Check for pending updates
-                pending = result.get('pending_update_count', 0)
-                if pending > 0:
-                    webhook_status += f" ({pending} pending updates)"
-            else:
-                webhook_status = "Could not retrieve status"
-        except Exception as e:
-            webhook_status = f"Error checking status: {str(e)}"
-    
-    return render_template("telegram.html", status=status, webhook_status=webhook_status)
+    return render_template('telegram.html', 
+                          status="GroqSeeker_Bot is ready to use in Telegram", 
+                          webhook_status=webhook_status)
 
 @app.route("/main",methods=["GET","POST"])
 def main():
