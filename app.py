@@ -312,14 +312,42 @@ def index():
 
 @app.route('/telegram')
 def telegram_info():
-    # Check webhook status
-    webhook_status = "Active"
+    # Check webhook status with Telegram API
+    webhook_status = "Unknown"
     try:
-        # This is a placeholder - in a real implementation, you might want to
-        # actually check with the Telegram API if the webhook is properly set
-        pass
+        # Get webhook info from Telegram API using urllib3
+        import urllib3
+        import json
+        
+        # Create a connection pool
+        http = urllib3.PoolManager()
+        
+        token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        if not token:
+            webhook_status = "Error: TELEGRAM_BOT_TOKEN not set"
+        else:
+            response = http.request(
+                'GET',
+                f"https://api.telegram.org/bot{token}/getWebhookInfo"
+            )
+            if response.status == 200:
+                webhook_info = json.loads(response.data.decode('utf-8'))
+                if webhook_info.get("ok"):
+                    webhook_data = webhook_info.get("result", {})
+                    if webhook_data.get("url"):
+                        webhook_status = "Active: " + webhook_data.get("url")
+                        # Check for pending updates
+                        pending = webhook_data.get("pending_update_count", 0)
+                        if pending > 0:
+                            webhook_status += f" ({pending} pending updates)"
+                    else:
+                        webhook_status = "Not set"
+                else:
+                    webhook_status = f"Error: {webhook_info.get('description', 'Unknown error')}"
+            else:
+                webhook_status = f"Error: HTTP {response.status_code}"
     except Exception as e:
-        webhook_status = f"Error: {str(e)}"
+        webhook_status = f"Error checking webhook: {str(e)}"
     
     return render_template('telegram.html', 
                           status="GroqSeeker_Bot is ready to use in Telegram", 
