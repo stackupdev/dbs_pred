@@ -330,10 +330,12 @@ def message_handler(update, context):
     # Default: treat as a question for the last used model or LLAMA
     model = udata.get('last_model', 'llama')
     if model == 'deepseek':
-        update.message.text = f"/deepseek {text}"
+        # Set args directly instead of modifying the message text
+        context.args = text.split()
         return deepseek_command(update, context)
     else:  # Default to LLAMA
-        update.message.text = f"/llama {text}"
+        # Set args directly instead of modifying the message text
+        context.args = text.split()
         return llama_command(update, context)
 
 # Register handlers with the dispatcher
