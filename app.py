@@ -304,10 +304,10 @@ def message_handler(update, context):
     
     # Process based on the button/text content
     if text == "Chat with LLAMA":
-        update.message.text = "/llama Hi, I'd like to chat"
+        context.args = ["Hi,", "I'd", "like", "to", "chat"]
         return llama_command(update, context)
     elif text == "Chat with Deepseek":
-        update.message.text = "/deepseek Hi, I'd like to chat"
+        context.args = ["Hi,", "I'd", "like", "to", "chat"]
         return deepseek_command(update, context)
     elif text == "Predict DBS Price":
         send_telegram_message(update, "Please enter the USD/SGD rate to predict DBS price.\nFormat: 1.34")
