@@ -20,21 +20,45 @@ telegram_dispatcher = Dispatcher(TELEGRAM_BOT, None, workers=0, use_context=True
 # In-memory user_data for session context per user
 user_data = {}
 
+# Maximum tokens to allow in conversation history before truncating
+MAX_TOKENS = 4000  # Conservative limit below Groq's 6000 token limit
+
 def get_llama_reply(messages: list) -> str:
-    client = Groq()
-    completion = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=messages
-    )
-    return completion.choices[0].message.content
+    try:
+        client = Groq()
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=messages
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        error_str = str(e)
+        print(f"Error in get_llama_reply: {error_str}")
+        
+        # Handle token limit errors
+        if "413" in error_str and "Request too large" in error_str:
+            # Conversation history too long
+            return "⚠️ Your conversation history is too long for the model's token limit. Please use /reset to start a new conversation, or ask a shorter question."
 
 def get_deepseek_reply(messages: list) -> str:
-    client = Groq()
-    completion_ds = client.chat.completions.create(
-        model="deepseek-r1-distill-llama-70b",
-        messages=messages
-    )
-    return completion_ds.choices[0].message.content
+    try:
+        client = Groq()
+        completion_ds = client.chat.completions.create(
+            model="deepseek-r1-distill-llama-70b",
+            messages=messages
+        )
+        return completion_ds.choices[0].message.content
+    except Exception as e:
+        error_str = str(e)
+        print(f"Error in get_deepseek_reply: {error_str}")
+        
+        # Handle token limit errors
+        if "413" in error_str and "Request too large" in error_str:
+            # Conversation history too long
+            return "⚠️ Your conversation history is too long for the model's token limit. Please use /reset to start a new conversation, or ask a shorter question."
+        
+        # Handle other API errors
+        return f"⚠️ Error from Groq API: {error_str}"
 
 def predict_dbs(usdsgd: float) -> str:
     try:
@@ -73,6 +97,50 @@ def get_user_data(user_id):
     if user_id not in user_data:
         user_data[user_id] = {}
     return user_data[user_id]
+
+def truncate_conversation(messages, max_tokens=MAX_TOKENS):
+    """
+    Automatically truncate conversation history to stay within token limits.
+    Uses a simple heuristic of ~4 chars per token for estimation.
+    """
+    if not messages:
+        return messages
+        
+    # Simple estimation: ~4 chars per token
+    total_chars = sum(len(msg["content"]) for msg in messages)
+    estimated_tokens = total_chars // 4
+    
+    # If we're under the limit, no need to truncate
+    if estimated_tokens <= max_tokens:
+        return messages
+        
+    print(f"Truncating conversation: {estimated_tokens} tokens (estimated) exceeds {max_tokens} limit")
+    
+    # Keep truncating from the beginning until we're under the limit
+    # Always keep at least the most recent exchange (2 messages)
+    while estimated_tokens > max_tokens and len(messages) > 2:
+        # If first message is system, remove the second message instead
+        if messages and messages[0]["role"] == "system":
+            if len(messages) <= 2:  # Only system + 1 message left
+                break
+            removed = messages.pop(1)
+        else:
+            removed = messages.pop(0)
+            
+        estimated_tokens -= len(removed["content"]) // 4
+        print(f"Removed message: {removed['role']} ({len(removed['content']) // 4} tokens)")
+    
+    # Add a system message indicating truncation if we removed messages
+    if estimated_tokens > max_tokens:
+        truncation_notice = {"role": "system", "content": "[Some earlier messages were removed to stay within token limits]"}
+        if messages and messages[0]["role"] == "system":
+            # Insert after existing system message
+            messages.insert(1, truncation_notice)
+        else:
+            # Insert at beginning
+            messages.insert(0, truncation_notice)
+            
+    return messages
 
 def send_telegram_message(update, text):
     """Split long messages into smaller chunks to avoid Telegram's 4096 character limit"""
@@ -116,30 +184,58 @@ def help_command(update, context):
 
 def llama_command(update, context):
     user_id = update.effective_user.id
-    q = ' '.join(context.args)
     udata = get_user_data(user_id)
     if 'llama_history' not in udata:
         udata['llama_history'] = []
     if not context.args:
         send_telegram_message(update, "Please provide a question after /llama.")
         return
+        
+    # Get the user's question from arguments
+    q = ' '.join(context.args)
+    print(f"LLAMA query from user {user_id}: {q}")
+    
+    # Add user message to history
     udata['llama_history'].append({"role": "user", "content": q})
+    
+    # Truncate conversation if needed before sending to API
+    udata['llama_history'] = truncate_conversation(udata['llama_history'])
+    
+    # Get reply from LLAMA
     reply = get_llama_reply(udata['llama_history'])
-    udata['llama_history'].append({"role": "assistant", "content": reply})
+    
+    # Only add assistant message to history if it's not an error
+    if not reply.startswith("⚠️"):
+        udata['llama_history'].append({"role": "assistant", "content": reply})
+        
     send_telegram_message(update, reply)
 
 def deepseek_command(update, context):
     user_id = update.effective_user.id
-    q = ' '.join(context.args)
     udata = get_user_data(user_id)
     if 'deepseek_history' not in udata:
         udata['deepseek_history'] = []
     if not context.args:
         send_telegram_message(update, "Please provide a question after /deepseek.")
         return
+        
+    # Get the user's question from arguments
+    q = ' '.join(context.args)
+    print(f"Deepseek query from user {user_id}: {q}")
+    
+    # Add user message to history
     udata['deepseek_history'].append({"role": "user", "content": q})
+    
+    # Truncate conversation if needed before sending to API
+    udata['deepseek_history'] = truncate_conversation(udata['deepseek_history'])
+    
+    # Get reply from Deepseek
     reply = get_deepseek_reply(udata['deepseek_history'])
-    udata['deepseek_history'].append({"role": "assistant", "content": reply})
+    
+    # Only add assistant message to history if it's not an error
+    if not reply.startswith("⚠️"):
+        udata['deepseek_history'].append({"role": "assistant", "content": reply})
+        
     send_telegram_message(update, reply)
 
 def predict_command(update, context):
